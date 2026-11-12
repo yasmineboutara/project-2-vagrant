@@ -1,0 +1,6 @@
+.env
+.lab/
+.vagrant/
+.vault-pass
+*.retry
+__pycache__/

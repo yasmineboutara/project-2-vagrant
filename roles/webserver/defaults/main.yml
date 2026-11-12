@@ -1,0 +1,5 @@
+---
+web_root: /var/www/site
+web_server_name: _
+web_listen_port: 80
+web_site_source: "{{ playbook_dir }}/../site/index.html"

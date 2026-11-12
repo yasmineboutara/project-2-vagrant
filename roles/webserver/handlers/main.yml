@@ -1,0 +1,10 @@
+---
+- name: Valider et recharger Nginx
+  ansible.builtin.command: nginx -t
+  changed_when: false
+  notify: Recharger Nginx
+
+- name: Recharger Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded

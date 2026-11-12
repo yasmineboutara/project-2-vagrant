@@ -1,0 +1,51 @@
+---
+- name: Installer Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Créer le répertoire du site
+  ansible.builtin.file:
+    path: "{{ web_root }}"
+    state: directory
+    owner: www-data
+    group: www-data
+    mode: "0755"
+
+- name: Déployer la page d'accueil
+  ansible.builtin.copy:
+    src: "{{ web_site_source }}"
+    dest: "{{ web_root }}/index.html"
+    owner: www-data
+    group: www-data
+    mode: "0644"
+
+- name: Déployer la configuration du site Nginx
+  ansible.builtin.template:
+    src: site.conf.j2
+    dest: /etc/nginx/sites-available/site
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Valider et recharger Nginx
+
+- name: Activer le site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/site
+    dest: /etc/nginx/sites-enabled/site
+    state: link
+  notify: Valider et recharger Nginx
+
+- name: Désactiver le site par défaut
+  ansible.builtin.file:
+    path: /etc/nginx/sites-enabled/default
+    state: absent
+  notify: Valider et recharger Nginx
+
+- name: Démarrer et activer Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

@@ -1,0 +1,10 @@
+services:
+  web:
+    build:
+      context: .
+      args:
+        SSH_PUBLIC_KEY: ${SSH_PUBLIC_KEY:?Set SSH_PUBLIC_KEY in .env}
+    ports:
+      - "2222:22"
+      - "8080:80"
+    restart: unless-stopped

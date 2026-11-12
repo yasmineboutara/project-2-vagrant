@@ -1,0 +1,41 @@
+name: Deploy site with Ansible
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-lab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Install Ansible Core
+        run: python -m pip install ansible-core
+      - name: Create ephemeral SSH key
+        run: |
+          mkdir -p .lab
+          ssh-keygen -q -t ed25519 -N '' -f .lab/id_ed25519
+          echo "SSH_PUBLIC_KEY=$(cat .lab/id_ed25519.pub)" >> "$GITHUB_ENV"
+          echo "ANSIBLE_PRIVATE_KEY_FILE=$GITHUB_WORKSPACE/.lab/id_ed25519" >> "$GITHUB_ENV"
+      - name: Start disposable target
+        run: docker compose up -d --build
+      - name: Wait for SSH
+        run: for i in {1..30}; do ssh-keyscan -p 2222 localhost >> ~/.ssh/known_hosts 2>/dev/null && break || sleep 2; done
+      - name: Deploy site (first run)
+        run: ansible-playbook --private-key "$ANSIBLE_PRIVATE_KEY_FILE" playbooks/site.yml
+      - name: Verify idempotence (second run)
+        shell: bash
+        run: |
+          set -o pipefail
+          ansible-playbook --private-key "$ANSIBLE_PRIVATE_KEY_FILE" playbooks/site.yml | tee /tmp/ansible-second-run.log
+          grep -Eq 'changed=0([ ,]|$)' /tmp/ansible-second-run.log
+      - name: Verify HTTP response
+        run: curl --fail http://localhost:8080 | grep -q 'Déploiement réussi'
